@@ -430,7 +430,7 @@
         #leaderboard-button {
             position: absolute;
             top: 10px;
-            left: 70px; 
+            left: 70px;
             z-index: 30;
             padding: 10px;
             font-size: 20px;
@@ -460,66 +460,25 @@
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: white;
+            width: 100vw;
+            height: 100vh;
+            background-color: white;
             color: black;
-            z-index: 999;
             font-size: 20px;
+            z-index: 99999;
+            display: flex;
             justify-content: center;
             align-items: center;
             text-align: center;
             padding: 20px;
-        }
-        
-      @media screen and (orientation: portrait) {
-          #orientation-warning {
-            display: flex !important;
-          }
-        
-          #game-container {
-            display: none !important;
-          }
-        }
-        
-        @media only screen and (max-width: 768px) {
-          body {
-            font-family: 'Arial', sans-serif !important;
-            font-size: 14px;
-          }
-        
-          h1, h2, p, button {
-            font-size: 16px !important;
-          }
-        
-          #level-buttons button,
-          #profile-button,
-          #menu-button,
-          #shop-button,
-          #leaderboard-button {
-            font-size: 14px !important;
-            padding: 6px 12px !important;
-          }
-        
-          #basket {
-            width: 80px !important;
-            height: 60px !important;
-          }
-        
-          .apple {
-            width: 40px !important;
-            height: 40px !important;
-          }
-        
-          .bad-apple {
-            width: 30px !important;
-            height: 30px !important;
-          }
+            box-sizing: border-box;
         }
 
+        
     </style>
 </head>
 <body>
+    
     <div id="game-container">
         <div id="start-screen">
             <h1 id="main-title" style="margin-bottom: 80px;">Palīdz man, saulīt, ar dārzu! Āboli jau strauji krīt!</h1>
@@ -641,562 +600,545 @@
             <img id="grandma-image3" src="./grandma2.png" alt="Vecmāmiņa ir priecīga">
             <button onclick="claimGift()">Uz veikalu</button>
         </div>
-        <div id="orientation-warning">
-            Lūdzu, pagrieziet ierīci horizontāli, lai spēlētu šo spēli.
-        </div>
+
     </div>
 
-        <script>
-            const basket = document.getElementById('basket');
-            const gameContainer = document.getElementById('game-container');
-            const startScreen = document.getElementById('start-screen');
-            const resultScreen = document.getElementById('result-screen');
-            const failureScreen = document.getElementById('failure-screen');
-            const failureScreenLast = document.getElementById('failure-screen-last');
-            const finalScore = document.getElementById('final-score');
-            const timer = document.getElementById('timer');
-            const scoreDisplay = document.getElementById('score');
-            const menuButton = document.getElementById('menu-button');
+    <script>
+        const basket = document.getElementById('basket');
+        const gameContainer = document.getElementById('game-container');
+        const startScreen = document.getElementById('start-screen');
+        const resultScreen = document.getElementById('result-screen');
+        const failureScreen = document.getElementById('failure-screen');
+        const failureScreenLast = document.getElementById('failure-screen-last');
+        const finalScore = document.getElementById('final-score');
+        const timer = document.getElementById('timer');
+        const scoreDisplay = document.getElementById('score');
+        const menuButton = document.getElementById('menu-button');
 
-            let currentBasketImage = './1.png';
-            let currentPenaltyImage = './1slime.png';
-            let appleInterval;
-            let countdownInterval;
-            let score = 0;
-            let gameDuration = 30;
-            let timeLeft = gameDuration;
-            let endGameTimeout;
-            let basketDisabled = false;
-            let totalCoins = parseInt(localStorage.getItem('totalCoins')) || 0;
-
-
-            document.addEventListener('mousemove', (e) => {
-                const rect = gameContainer.getBoundingClientRect();
-                const basketWidth = basket.offsetWidth;
-                let x = e.clientX - rect.left - basketWidth / 2;
-                x = Math.max(0, Math.min(rect.width - basketWidth, x));
-                basket.style.left = `${x}px`;
-            });
-
-            const levelButtonsContainer = document.getElementById('level-buttons');
-            const levelDescription = document.getElementById('level-description');
-            levelDescription.style.minHeight = '34px';
-
-            const style = document.createElement('style');
-            style.innerHTML = `
-                  .level-button,
-                  button {
-                    font-family: 'Brush Script MT', cursive !important;
-                  }
-                `;
-            document.head.appendChild(style);
+        let currentBasketImage = './1.png';
+        let currentPenaltyImage = './1slime.png';
+        let appleInterval;
+        let countdownInterval;
+        let score = 0;
+        let gameDuration = 30;
+        let timeLeft = gameDuration;
+        let endGameTimeout;
+        let basketDisabled = false;
+        let totalCoins = parseInt(localStorage.getItem('totalCoins')) || 0;
 
 
-            const levels = [
-                {
-                    label: '1',
-                    description: 'Tev ir 30 sekundes, lai savāktu pēc iespējas vairāk ābolu.',
-                    time: 30,
-                    speed: 800,
-                    requirement: () => true,
-                    validator: (score) => score > 0
-                },
-                {
-                    label: '2',
-                    description: 'Tev ir 30 sekundes, lai savāktu pēc iespējas vairāk ābolu. Āboli krīt straujāk! ',
-                    time: 30,
-                    speed: 500,
-                    requirement: () => levelProgress[0],
-                    validator: (score) => score > 0
-                },
-                {
-                    label: '3',
-                    description: 'Vienkārši ķer, cik vari!',
-                    time: 20,
-                    speed: 150,
-                    onlyGood: true,
-                    requirement: () => levelProgress[1],
-                    validator: (score) => score > 0
-                },
-                {
-                    label: '4',
-                    description: 'Nevienu ābolu nevar palaist garām!',
-                    time: 30,
-                    speed: 600,
-                    noMiss: true,
-                    requirement: () => levelProgress[2],
-                    validator: (missedGood) => missedGood === 0
-                },
-                {
-                    label: '5',
-                    description: 'Savāc 30 ābolus!',
-                    time: 30,
-                    speed: 600,
-                    requirement: () => levelProgress[3],
-                    validator: (score) => score >= 30
+        document.addEventListener('mousemove', (e) => {
+            const rect = gameContainer.getBoundingClientRect();
+            const basketWidth = basket.offsetWidth;
+            let x = e.clientX - rect.left - basketWidth / 2;
+            x = Math.max(0, Math.min(rect.width - basketWidth, x));
+            basket.style.left = `${x}px`;
+        });
+
+        const levelButtonsContainer = document.getElementById('level-buttons');
+        const levelDescription = document.getElementById('level-description');
+        levelDescription.style.minHeight = '34px';
+
+        const style = document.createElement('style');
+        style.innerHTML = `
+                          .level-button,
+                          button {
+                            font-family: 'Brush Script MT', cursive !important;
+                          }
+                        `;
+        document.head.appendChild(style);
+
+
+        const levels = [
+            {
+                label: '1',
+                description: 'Tev ir 30 sekundes, lai savāktu pēc iespējas vairāk ābolu.',
+                time: 30,
+                speed: 800,
+                requirement: () => true,
+                validator: (score) => score > 0
+            },
+            {
+                label: '2',
+                description: 'Tev ir 30 sekundes, lai savāktu pēc iespējas vairāk ābolu. Āboli krīt straujāk! ',
+                time: 30,
+                speed: 500,
+                requirement: () => levelProgress[0],
+                validator: (score) => score > 0
+            },
+            {
+                label: '3',
+                description: 'Vienkārši ķer, cik vari!',
+                time: 20,
+                speed: 150,
+                onlyGood: true,
+                requirement: () => levelProgress[1],
+                validator: (score) => score > 0
+            },
+            {
+                label: '4',
+                description: 'Nevienu ābolu nevar palaist garām!',
+                time: 30,
+                speed: 600,
+                noMiss: true,
+                requirement: () => levelProgress[2],
+                validator: (missedGood) => missedGood === 0
+            },
+            {
+                label: '5',
+                description: 'Savāc 30 ābolus!',
+                time: 30,
+                speed: 600,
+                requirement: () => levelProgress[3],
+                validator: (score) => score >= 30
+            }
+        ];
+
+        let levelProgress = JSON.parse(localStorage.getItem('levelProgress')) || [false, false, false, false, false];
+
+        function renderLevelButtons() {
+            levelButtonsContainer.innerHTML = '';
+
+            levels.forEach((lvl, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'level-button';
+                btn.textContent = lvl.label;
+                if (!lvl.requirement()) {
+                    btn.classList.add('locked');
+                    btn.style.opacity = '0.7';
                 }
-            ];
 
-            let levelProgress = JSON.parse(localStorage.getItem('levelProgress')) || [false, false, false, false, false];
-
-            function renderLevelButtons() {
-                levelButtonsContainer.innerHTML = '';
-
-                levels.forEach((lvl, idx) => {
-                    const btn = document.createElement('button');
-                    btn.className = 'level-button';
-                    btn.textContent = lvl.label;
-                    if (!lvl.requirement()) {
-                        btn.classList.add('locked');
-                        btn.style.opacity = '0.7';
-                    }
-
-                    btn.addEventListener('mouseenter', () => {
-                        levelDescription.textContent = lvl.description;
-                    });
-
-                    btn.addEventListener('mouseleave', () => {
-                        levelDescription.textContent = '';
-                    });
-
-                    btn.addEventListener('click', () => {
-                        if (lvl.requirement()) startLevel(idx);
-                    });
-
-                    levelButtonsContainer.appendChild(btn);
+                btn.addEventListener('mouseenter', () => {
+                    levelDescription.textContent = lvl.description;
                 });
-            }
 
-            let missedGood = 0;
-            let currentLevelConfig = null;
+                btn.addEventListener('mouseleave', () => {
+                    levelDescription.textContent = '';
+                });
 
-            function startLevel(index) {
-                const lvl = levels[index];
-                score = 0;
-                missedGood = 0;
-                timeLeft = lvl.time;
-                gameDuration = lvl.time;
-                currentLevelConfig = lvl;
+                btn.addEventListener('click', () => {
+                    if (lvl.requirement()) startLevel(idx);
+                });
 
+                levelButtonsContainer.appendChild(btn);
+            });
+        }
+
+        let missedGood = 0;
+        let currentLevelConfig = null;
+
+        function startLevel(index) {
+            const lvl = levels[index];
+            score = 0;
+            missedGood = 0;
+            timeLeft = lvl.time;
+            gameDuration = lvl.time;
+            currentLevelConfig = lvl;
+
+            timer.textContent = `${timeLeft}`;
+            scoreDisplay.textContent = `${score}`;
+
+            startScreen.style.display = 'none';
+            resultScreen.style.display = 'none';
+            failureScreen.style.display = 'none';
+            failureScreenLast.style.display = 'none';
+            document.getElementById('shop-button').style.display = 'none';
+            basket.style.display = 'block';
+            timer.style.display = 'block';
+            scoreDisplay.style.display = 'block';
+            menuButton.style.display = 'block';
+            document.getElementById("leaderboard-button").style.display = "none";
+
+            appleInterval = setInterval(spawnApple, lvl.speed);
+            countdownInterval = setInterval(() => {
+                timeLeft--;
                 timer.textContent = `${timeLeft}`;
-                scoreDisplay.textContent = `${score}`;
+                if (timeLeft <= 0) clearInterval(countdownInterval);
+            }, 1000);
 
-                startScreen.style.display = 'none';
-                resultScreen.style.display = 'none';
-                failureScreen.style.display = 'none';
-                failureScreenLast.style.display = 'none';
-                document.getElementById('shop-button').style.display = 'none';
-                basket.style.display = 'block';
-                timer.style.display = 'block';
-                scoreDisplay.style.display = 'block';
-                menuButton.style.display = 'block';
-                document.getElementById("leaderboard-button").style.display = "none";
+            endGameTimeout = setTimeout(() => endLevel(index), lvl.time * 1000);
+        }
 
-                appleInterval = setInterval(spawnApple, lvl.speed);
-                countdownInterval = setInterval(() => {
-                    timeLeft--;
-                    timer.textContent = `${timeLeft}`;
-                    if (timeLeft <= 0) clearInterval(countdownInterval);
-                }, 1000);
+        function spawnApple() {
+            const lvl = currentLevelConfig;
+            const apple = document.createElement('div');
+            apple.className = 'apple';
+            let isGood = true;
 
-                endGameTimeout = setTimeout(() => endLevel(index), lvl.time * 1000);
-            }
-
-            function spawnApple() {
-                const lvl = currentLevelConfig;
-                const apple = document.createElement('div');
-                apple.className = 'apple';
-                let isGood = true;
-
-                if (lvl.onlyGood) {
+            if (lvl.onlyGood) {
+                apple.dataset.type = 'normal';
+                apple.style.backgroundImage = "url('./red.png')";
+            } else {
+                const rand = Math.random();
+                if (rand < 0.1) {
+                    apple.dataset.type = 'golden';
+                    apple.style.backgroundImage = "url('./yellow.png')";
+                } else if (rand < 0.2) {
+                    apple.dataset.type = 'bad';
+                    apple.style.backgroundImage = "url('./bad.png')";
+                    apple.classList.add('bad-apple');
+                    isGood = false;
+                } else {
                     apple.dataset.type = 'normal';
                     apple.style.backgroundImage = "url('./red.png')";
-                } else {
-                    const rand = Math.random();
-                    if (rand < 0.1) {
-                        apple.dataset.type = 'golden';
-                        apple.style.backgroundImage = "url('./yellow.png')";
-                    } else if (rand < 0.2) {
-                        apple.dataset.type = 'bad';
-                        apple.style.backgroundImage = "url('./bad.png')";
-                        apple.classList.add('bad-apple');
-                        isGood = false;
-                    } else {
-                        apple.dataset.type = 'normal';
-                        apple.style.backgroundImage = "url('./red.png')";
-                    }
                 }
-
-                apple.style.left = Math.random() * (gameContainer.offsetWidth - 60) + 'px';
-                apple.style.top = '-60px';
-                gameContainer.appendChild(apple);
-
-                const fall = setInterval(() => {
-                    apple.style.top = apple.offsetTop + 5 + 'px';
-                    const appleRect = apple.getBoundingClientRect();
-                    const basketRect = basket.getBoundingClientRect();
-                    const containerRect = gameContainer.getBoundingClientRect();
-
-                    if (appleRect.bottom >= containerRect.bottom) {
-                        clearInterval(fall);
-                        apple.remove();
-                        if (lvl.noMiss && apple.dataset.type === 'normal') {
-                            missedGood++;
-                            endLevel(levels.indexOf(lvl));
-                        }
-                    } else if (
-                        appleRect.bottom >= basketRect.top &&
-                        appleRect.left < basketRect.right &&
-                        appleRect.right > basketRect.left
-                    ) {
-                        if (basketDisabled) return;
-                        clearInterval(fall);
-                        apple.remove();
-
-                        if (apple.dataset.type === 'golden') score += 5;
-                        else if (apple.dataset.type === 'bad') disableBasket();
-                        else score += 1;
-                        scoreDisplay.textContent = `${score}`;
-                    }
-                }, 20);
             }
 
-            function endLevel(index) {
-                clearInterval(appleInterval);
-                clearInterval(countdownInterval);
-                clearTimeout(endGameTimeout);
-                document.querySelectorAll('.apple').forEach(a => a.remove());
-                basket.style.display = 'none';
-                timer.style.display = 'none';
-                scoreDisplay.style.display = 'none';
-                menuButton.style.display = 'none';
+            apple.style.left = Math.random() * (gameContainer.offsetWidth - 60) + 'px';
+            apple.style.top = '-60px';
+            gameContainer.appendChild(apple);
 
-                const passed = levels[index].validator(levels[index].noMiss ? missedGood : score);
+            const fall = setInterval(() => {
+                apple.style.top = apple.offsetTop + 5 + 'px';
+                const appleRect = apple.getBoundingClientRect();
+                const basketRect = basket.getBoundingClientRect();
+                const containerRect = gameContainer.getBoundingClientRect();
 
-                if(passed) {
-                    if (index === 4 && !purchasedBaskets[3]) {
-                        document.getElementById('gift-screen').style.display = 'flex';
-                        
-                        purchasedBaskets[3] = true;
-                        selectedBasketIndex = 3;
-                        currentBasketImage = basketImages[3];
-                        currentPenaltyImage = currentBasketImage.replace('.png', 'slime.png');
-                        basket.style.backgroundImage = `url('${currentBasketImage}')`;
-
-                        localStorage.setItem('purchasedBaskets', JSON.stringify(purchasedBaskets));
-                        localStorage.setItem('selectedBasketIndex', selectedBasketIndex);
-                    } else {
-                        resultScreen.style.display = 'flex';
+                if (appleRect.bottom >= containerRect.bottom) {
+                    clearInterval(fall);
+                    apple.remove();
+                    if (lvl.noMiss && apple.dataset.type === 'normal') {
+                        missedGood++;
+                        endLevel(levels.indexOf(lvl));
                     }
+                } else if (
+                    appleRect.bottom >= basketRect.top &&
+                    appleRect.left < basketRect.right &&
+                    appleRect.right > basketRect.left
+                ) {
+                    if (basketDisabled) return;
+                    clearInterval(fall);
+                    apple.remove();
 
-                    finalScore.textContent = `${index + 1}. līmenis pabeigts! Punkti: ${score}`;
-                    levelProgress[index] = true;
-                    localStorage.setItem('levelProgress', JSON.stringify(levelProgress));
-
-                } else {
-                    if (index === 4) document.getElementById('failure-screen-last').style.display = 'flex';
-                    else document.getElementById('failure-screen').style.display = 'flex';
-                    document.getElementById('failure-score').textContent = `Nepaveicās! Punkti: ${score}`;
+                    if (apple.dataset.type === 'golden') score += 5;
+                    else if (apple.dataset.type === 'bad') disableBasket();
+                    else score += 1;
+                    scoreDisplay.textContent = `${score}`;
                 }
+            }, 20);
+        }
 
-                totalCoins += score;
-                localStorage.setItem('totalCoins', totalCoins);
-                updateCoinDisplay();
-                renderLevelButtons();
-            }
+        function endLevel(index) {
+            clearInterval(appleInterval);
+            clearInterval(countdownInterval);
+            clearTimeout(endGameTimeout);
+            document.querySelectorAll('.apple').forEach(a => a.remove());
+            basket.style.display = 'none';
+            timer.style.display = 'none';
+            scoreDisplay.style.display = 'none';
+            menuButton.style.display = 'none';
 
-            function claimGift() {
-                document.getElementById('gift-screen').style.display = 'none';
-                openShop();
-            }
+            const passed = levels[index].validator(levels[index].noMiss ? missedGood : score);
 
+            if (passed) {
+                if (index === 4 && !purchasedBaskets[3]) {
+                    document.getElementById('gift-screen').style.display = 'flex';
 
-
-            renderLevelButtons();
-
-            function disableBasket() {
-                basketDisabled = true;
-                basket.style.backgroundImage = `url('${currentPenaltyImage}')`;
-                basket.style.opacity = 0.5;
-
-                setTimeout(() => {
-                    basketDisabled = false;
+                    purchasedBaskets[3] = true;
+                    selectedBasketIndex = 3;
+                    currentBasketImage = basketImages[3];
+                    currentPenaltyImage = currentBasketImage.replace('.png', 'slime.png');
                     basket.style.backgroundImage = `url('${currentBasketImage}')`;
-                    basket.style.opacity = 1;
-                }, 5000);
-            }
 
-            function restartGame() {
-                resultScreen.style.display = 'none';
-                failureScreen.style.display = 'none';
-                failureScreenLast.style.display = 'none';
-                startScreen.style.display = 'flex';
-                document.getElementById('shop-button').style.display = 'block';
-                document.getElementById("leaderboard-button").style.display = "block";
-            }
-
-            function returnToMenu() {
-                clearInterval(appleInterval);
-                clearInterval(countdownInterval);
-                clearTimeout(endGameTimeout);
-                document.querySelectorAll('.apple').forEach(a => a.remove());
-                document.getElementById('shop-button').style.display = 'none';
-                document.getElementById('shop-button').style.display = 'block';
-                document.getElementById("leaderboard-button").style.display = "block";
-                basket.style.display = 'none';
-                timer.style.display = 'none';
-                scoreDisplay.style.display = 'none';
-                menuButton.style.display = 'none';
-                resultScreen.style.display = 'none';
-                startScreen.style.display = 'flex';
-            }
-
-            function openProfile() {
-                startScreen.style.display = 'none';
-                document.getElementById('profile-screen').style.display = 'flex';
-                document.getElementById('shop-button').style.display = 'none';
-                document.getElementById("leaderboard-button").style.display = "none";
-                loadProfile();
-            }
-
-            function closeProfile() {
-                document.getElementById('profile-screen').style.display = 'none';
-                document.getElementById('shop-button').style.display = 'block';
-                document.getElementById("leaderboard-button").style.display = "block";
-                startScreen.style.display = 'flex';
-                document.getElementById('avatar-selection').style.display = 'none';
-            }
-
-            function editNickname() {
-                document.getElementById('edit-nickname-section').style.display = 'flex';
-            }
-
-            function saveNickname() {
-                const newNick = document.getElementById('new-nickname').value.trim();
-                if (newNick) {
-                    document.getElementById('nickname').textContent = newNick;
-                    localStorage.setItem('nickname', newNick);
-                }
-                document.getElementById('edit-nickname-section').style.display = 'none';
-            }
-
-            function changeAvatar() {
-                const avatarSelection = document.getElementById('avatar-selection');
-                avatarSelection.style.display = avatarSelection.style.display === 'flex' ? 'none' : 'flex';
-            }
-
-            function selectAvatar(imageUrl) {
-                document.getElementById('avatar').style.backgroundImage = `url('${imageUrl}')`;
-                localStorage.setItem('avatar', imageUrl);
-                document.getElementById('avatar-selection').style.display = 'none';
-            }
-
-            function loadProfile() {
-                const nickname = localStorage.getItem('nickname') || 'Spēlētājs';
-                const avatar = localStorage.getItem('avatar') || './avatarM1.png';
-                document.getElementById('nickname').textContent = nickname;
-                document.getElementById('avatar').style.backgroundImage = `url('${avatar}')`;
-                updateCoinDisplay();
-            }
-
-            const shopScreen = document.getElementById("shop-screen");
-            const mainBasketImage = document.getElementById("main-basket-image");
-            const leftArrow = document.querySelector(".arrow.left");
-            const rightArrow = document.querySelector(".arrow.right");
-
-            const basketImages = ['./1.png', './2.png', './3.png', './4.png'];
-            const basketPrices = ['Bezmaksas', '100 monētas', '500 monētas', '10000 monētas'];
-            let purchasedBaskets = JSON.parse(localStorage.getItem('purchasedBaskets')) || [true, false, false, false];
-            let currentBasketIndex = 0;
-
-            function openShop() {
-                startScreen.style.display = 'none';
-                shopScreen.style.display = 'flex';
-                document.getElementById('main-title').style.display = 'none';
-                document.getElementById('shop-button').style.display = 'none';
-                document.getElementById("leaderboard-button").style.display = "none";
-                updateShopView();
-                updateCoinDisplay();
-            }
-
-            function closeShop() {
-                shopScreen.style.display = 'none';
-                document.getElementById('main-title').style.display = 'block';
-                document.getElementById('shop-button').style.display = 'flex';
-                document.getElementById("leaderboard-button").style.display = "block";
-                startScreen.style.display = 'flex';
-            }
-
-            function updateShopView() {
-                mainBasketImage.src = basketImages[currentBasketIndex];
-
-                leftArrow.classList.toggle("disabled", currentBasketIndex === 0);
-                rightArrow.classList.toggle("disabled", currentBasketIndex === basketImages.length - 1);
-
-                const selectBtn = document.getElementById("select-basket-button");
-                const basketPriceLabel = document.getElementById("basket-price-label");
-
-                let price = [0, 100, 500, 1000][currentBasketIndex];
-                if (purchasedBaskets[currentBasketIndex]) {
-                    selectBtn.textContent = "Izvēlēties";
-                    selectBtn.disabled = currentBasketIndex === selectedBasketIndex;
-                    selectBtn.style.opacity = selectBtn.disabled ? 0.5 : 1;
-                    basketPriceLabel.textContent = currentBasketIndex === 0 ? "Bezmaksas" : `${price} monētas`;
+                    localStorage.setItem('purchasedBaskets', JSON.stringify(purchasedBaskets));
+                    localStorage.setItem('selectedBasketIndex', selectedBasketIndex);
                 } else {
-                    selectBtn.textContent = "Pirkt";
-                    selectBtn.disabled = false;
-                    selectBtn.style.opacity = 1;
-                    basketPriceLabel.textContent = `${price} monētas`;
+                    resultScreen.style.display = 'flex';
+                }
+
+                finalScore.textContent = `${index + 1}. līmenis pabeigts! Punkti: ${score}`;
+                levelProgress[index] = true;
+                localStorage.setItem('levelProgress', JSON.stringify(levelProgress));
+
+            } else {
+                if (index === 4) document.getElementById('failure-screen-last').style.display = 'flex';
+                else document.getElementById('failure-screen').style.display = 'flex';
+                document.getElementById('failure-score').textContent = `Nepaveicās! Punkti: ${score}`;
+            }
+
+            totalCoins += score;
+            localStorage.setItem('totalCoins', totalCoins);
+            updateCoinDisplay();
+            renderLevelButtons();
+        }
+
+        function claimGift() {
+            document.getElementById('gift-screen').style.display = 'none';
+            openShop();
+        }
+
+
+
+        renderLevelButtons();
+
+        function disableBasket() {
+            basketDisabled = true;
+            basket.style.backgroundImage = `url('${currentPenaltyImage}')`;
+            basket.style.opacity = 0.5;
+
+            setTimeout(() => {
+                basketDisabled = false;
+                basket.style.backgroundImage = `url('${currentBasketImage}')`;
+                basket.style.opacity = 1;
+            }, 5000);
+        }
+
+        function restartGame() {
+            resultScreen.style.display = 'none';
+            failureScreen.style.display = 'none';
+            failureScreenLast.style.display = 'none';
+            startScreen.style.display = 'flex';
+            document.getElementById('shop-button').style.display = 'block';
+            document.getElementById("leaderboard-button").style.display = "block";
+        }
+
+        function returnToMenu() {
+            clearInterval(appleInterval);
+            clearInterval(countdownInterval);
+            clearTimeout(endGameTimeout);
+            document.querySelectorAll('.apple').forEach(a => a.remove());
+            document.getElementById('shop-button').style.display = 'none';
+            document.getElementById('shop-button').style.display = 'block';
+            document.getElementById("leaderboard-button").style.display = "block";
+            basket.style.display = 'none';
+            timer.style.display = 'none';
+            scoreDisplay.style.display = 'none';
+            menuButton.style.display = 'none';
+            resultScreen.style.display = 'none';
+            startScreen.style.display = 'flex';
+        }
+
+        function openProfile() {
+            startScreen.style.display = 'none';
+            document.getElementById('profile-screen').style.display = 'flex';
+            document.getElementById('shop-button').style.display = 'none';
+            document.getElementById("leaderboard-button").style.display = "none";
+            loadProfile();
+        }
+
+        function closeProfile() {
+            document.getElementById('profile-screen').style.display = 'none';
+            document.getElementById('shop-button').style.display = 'block';
+            document.getElementById("leaderboard-button").style.display = "block";
+            startScreen.style.display = 'flex';
+            document.getElementById('avatar-selection').style.display = 'none';
+        }
+
+        function editNickname() {
+            document.getElementById('edit-nickname-section').style.display = 'flex';
+        }
+
+        function saveNickname() {
+            const newNick = document.getElementById('new-nickname').value.trim();
+            if (newNick) {
+                document.getElementById('nickname').textContent = newNick;
+                localStorage.setItem('nickname', newNick);
+            }
+            document.getElementById('edit-nickname-section').style.display = 'none';
+        }
+
+        function changeAvatar() {
+            const avatarSelection = document.getElementById('avatar-selection');
+            avatarSelection.style.display = avatarSelection.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function selectAvatar(imageUrl) {
+            document.getElementById('avatar').style.backgroundImage = `url('${imageUrl}')`;
+            localStorage.setItem('avatar', imageUrl);
+            document.getElementById('avatar-selection').style.display = 'none';
+        }
+
+        function loadProfile() {
+            const nickname = localStorage.getItem('nickname') || 'Spēlētājs';
+            const avatar = localStorage.getItem('avatar') || './avatarM1.png';
+            document.getElementById('nickname').textContent = nickname;
+            document.getElementById('avatar').style.backgroundImage = `url('${avatar}')`;
+            updateCoinDisplay();
+        }
+
+        const shopScreen = document.getElementById("shop-screen");
+        const mainBasketImage = document.getElementById("main-basket-image");
+        const leftArrow = document.querySelector(".arrow.left");
+        const rightArrow = document.querySelector(".arrow.right");
+
+        const basketImages = ['./1.png', './2.png', './3.png', './4.png'];
+        const basketPrices = ['Bezmaksas', '100 monētas', '500 monētas', '10000 monētas'];
+        let purchasedBaskets = JSON.parse(localStorage.getItem('purchasedBaskets')) || [true, false, false, false];
+        let currentBasketIndex = 0;
+
+        function openShop() {
+            startScreen.style.display = 'none';
+            shopScreen.style.display = 'flex';
+            document.getElementById('main-title').style.display = 'none';
+            document.getElementById('shop-button').style.display = 'none';
+            document.getElementById("leaderboard-button").style.display = "none";
+            updateShopView();
+            updateCoinDisplay();
+        }
+
+        function closeShop() {
+            shopScreen.style.display = 'none';
+            document.getElementById('main-title').style.display = 'block';
+            document.getElementById('shop-button').style.display = 'flex';
+            document.getElementById("leaderboard-button").style.display = "block";
+            startScreen.style.display = 'flex';
+        }
+
+        function updateShopView() {
+            mainBasketImage.src = basketImages[currentBasketIndex];
+
+            leftArrow.classList.toggle("disabled", currentBasketIndex === 0);
+            rightArrow.classList.toggle("disabled", currentBasketIndex === basketImages.length - 1);
+
+            const selectBtn = document.getElementById("select-basket-button");
+            const basketPriceLabel = document.getElementById("basket-price-label");
+
+            let price = [0, 100, 500, 1000][currentBasketIndex];
+            if (purchasedBaskets[currentBasketIndex]) {
+                selectBtn.textContent = "Izvēlēties";
+                selectBtn.disabled = currentBasketIndex === selectedBasketIndex;
+                selectBtn.style.opacity = selectBtn.disabled ? 0.5 : 1;
+                basketPriceLabel.textContent = currentBasketIndex === 0 ? "Bezmaksas" : `${price} monētas`;
+            } else {
+                selectBtn.textContent = "Pirkt";
+                selectBtn.disabled = false;
+                selectBtn.style.opacity = 1;
+                basketPriceLabel.textContent = `${price} monētas`;
+            }
+        }
+
+        function updateCoinDisplay() {
+            const coinDisplays = document.querySelectorAll('#coin-display.coin-profile');
+            coinDisplays.forEach(display => {
+                display.textContent = totalCoins;
+            });
+        }
+
+        let selectedBasketIndex = 0;
+
+        function selectBasket() {
+            let price = [0, 100, 500, 10000][currentBasketIndex];
+
+            if (!purchasedBaskets[currentBasketIndex]) {
+                if (totalCoins >= price) {
+                    totalCoins -= price;
+                    purchasedBaskets[currentBasketIndex] = true;
+                    localStorage.setItem('purchasedBaskets', JSON.stringify(purchasedBaskets));
+                    localStorage.setItem('totalCoins', totalCoins);
+                    updateCoinDisplay();
+                } else {
+
+                    const basketPriceLabel = document.getElementById("basket-price-label");
+                    basketPriceLabel.textContent = "Nepietiek monētu!";
+                    setTimeout(() => {
+                        basketPriceLabel.textContent = `${price} monētas`;
+                    }, 1500);
+                    return;
                 }
             }
 
-            function updateCoinDisplay() {
-                const coinDisplays = document.querySelectorAll('#coin-display.coin-profile');
-                coinDisplays.forEach(display => {
-                    display.textContent = totalCoins;
-                });
-            }
+            selectedBasketIndex = currentBasketIndex;
+            currentBasketImage = basketImages[selectedBasketIndex];
+            currentPenaltyImage = currentBasketImage.replace('.png', 'slime.png');
+            basket.style.backgroundImage = `url('${currentBasketImage}')`;
+            localStorage.setItem('selectedBasketIndex', selectedBasketIndex);
 
-            let selectedBasketIndex = 0;
+            updateShopView();
+        }
 
-            function selectBasket() {
-                let price = [0, 100, 500, 10000][currentBasketIndex];
-
-                if (!purchasedBaskets[currentBasketIndex]) {
-                    if (totalCoins >= price) {
-                        totalCoins -= price;
-                        purchasedBaskets[currentBasketIndex] = true;
-                        localStorage.setItem('purchasedBaskets', JSON.stringify(purchasedBaskets));
-                        localStorage.setItem('totalCoins', totalCoins);
-                        updateCoinDisplay();
-                    } else {
-
-                        const basketPriceLabel = document.getElementById("basket-price-label");
-                        basketPriceLabel.textContent = "Nepietiek monētu!";
-                        setTimeout(() => {
-                            basketPriceLabel.textContent = `${price} monētas`;
-                        }, 1500);
-                        return;
-                    }
-                }
-
-                selectedBasketIndex = currentBasketIndex;
+        function loadBasket() {
+            const savedIndex = localStorage.getItem('selectedBasketIndex');
+            if (savedIndex !== null) {
+                selectedBasketIndex = parseInt(savedIndex);
+                currentBasketIndex = selectedBasketIndex;
                 currentBasketImage = basketImages[selectedBasketIndex];
                 currentPenaltyImage = currentBasketImage.replace('.png', 'slime.png');
                 basket.style.backgroundImage = `url('${currentBasketImage}')`;
-                localStorage.setItem('selectedBasketIndex', selectedBasketIndex);
+            }
 
+            const savedPurchased = localStorage.getItem('purchasedBaskets');
+            if (savedPurchased) {
+                purchasedBaskets = JSON.parse(savedPurchased);
+            }
+        }
+
+        function prevBasket() {
+            if (currentBasketIndex > 0) {
+                currentBasketIndex--;
                 updateShopView();
             }
+            document.getElementById('basket-price-label').textContent = basketPrices[currentBasketIndex];
+        }
 
-            function loadBasket() {
-                const savedIndex = localStorage.getItem('selectedBasketIndex');
-                if (savedIndex !== null) {
-                    selectedBasketIndex = parseInt(savedIndex);
-                    currentBasketIndex = selectedBasketIndex;
-                    currentBasketImage = basketImages[selectedBasketIndex];
-                    currentPenaltyImage = currentBasketImage.replace('.png', 'slime.png');
-                    basket.style.backgroundImage = `url('${currentBasketImage}')`;
+        function nextBasket() {
+            if (currentBasketIndex < basketImages.length - 1) {
+                currentBasketIndex++;
+                updateShopView();
+            }
+            document.getElementById('basket-price-label').textContent = basketPrices[currentBasketIndex];
+        }
+
+        function openLeaderboard() {
+            const tableBody = document.getElementById("leaderboard-entries");
+            tableBody.innerHTML = "";
+
+            const myCoins = parseInt(localStorage.getItem("totalCoins") || "0");
+            const nickname = localStorage.getItem("nickname") || "Spēlētājs";
+
+            const fakeLeaderboard = [
+                { name: "CoinMaster42", coins: 2340 },
+                { name: "PixelRunner", coins: 1670 },
+                { name: "NoobSlayer99", coins: 1050 },
+                { name: "GhostHunter", coins: 950 },
+                { name: "SpeedyGonz", coins: 700 },
+                { name: "CryptoCat", coins: 200 },
+                { name: "BitCollector", coins: 76 },
+                { name: "LuckyLuke", coins: 74 },
+                { name: "ZeldaFan", coins: 69 },
+                { name: "MarioPro", coins: 65 },
+                { name: nickname, coins: myCoins }
+            ];
+
+            fakeLeaderboard.sort((a, b) => b.coins - a.coins);
+
+            fakeLeaderboard.forEach(player => {
+                const row = document.createElement("tr");
+
+                if (player.name === nickname && player.coins === myCoins) {
+                    row.style.color = '#6a7da4';
+                    row.style.fontWeight = 'bold';
                 }
 
-                const savedPurchased = localStorage.getItem('purchasedBaskets');
-                if (savedPurchased) {
-                    purchasedBaskets = JSON.parse(savedPurchased);
-                }
-            }
-
-            function prevBasket() {
-                if (currentBasketIndex > 0) {
-                    currentBasketIndex--;
-                    updateShopView();
-                }
-                document.getElementById('basket-price-label').textContent = basketPrices[currentBasketIndex];
-            }
-
-            function nextBasket() {
-                if (currentBasketIndex < basketImages.length - 1) {
-                    currentBasketIndex++;
-                    updateShopView();
-                }
-                document.getElementById('basket-price-label').textContent = basketPrices[currentBasketIndex];
-            }
-
-            function openLeaderboard() {
-                const tableBody = document.getElementById("leaderboard-entries");
-                tableBody.innerHTML = "";
-
-                const myCoins = parseInt(localStorage.getItem("totalCoins") || "0");
-                const nickname = localStorage.getItem("nickname") || "Spēlētājs";
-
-                const fakeLeaderboard = [
-                    { name: "CoinMaster42", coins: 2340 },
-                    { name: "PixelRunner", coins: 1670 },
-                    { name: "NoobSlayer99", coins: 1050 },
-                    { name: "GhostHunter", coins: 950 },
-                    { name: "SpeedyGonz", coins: 700 },
-                    { name: "CryptoCat", coins: 200 },
-                    { name: "BitCollector", coins: 76 },
-                    { name: "LuckyLuke", coins: 74 },
-                    { name: "ZeldaFan", coins: 69 },
-                    { name: "MarioPro", coins: 65 },
-                    { name: nickname, coins: myCoins }
-                ];
-
-                fakeLeaderboard.sort((a, b) => b.coins - a.coins);
-
-                fakeLeaderboard.forEach(player => {
-                    const row = document.createElement("tr");
-
-                    if (player.name === nickname && player.coins === myCoins) {
-                        row.style.color = '#6a7da4'; 
-                        row.style.fontWeight = 'bold';
-                    }
-
-                    row.innerHTML = `
-                        <td style="padding: 8px;">${player.name}</td>
-                        <td style="padding: 8px; text-align: right;">${player.coins.toLocaleString()}</td>
-                    `;
-                    tableBody.appendChild(row);
-                });
-
-
-                document.getElementById("start-screen").style.display = "none";
-                document.getElementById("leaderboard-screen").style.display = "flex";
-                document.getElementById("shop-button").style.display = "none";
-                document.getElementById("leaderboard-button").style.display = "none";
-            }
-
-            function closeLeaderboard() {
-                document.getElementById("leaderboard-screen").style.display = "none";
-                document.getElementById("start-screen").style.display = "flex";
-                document.getElementById("shop-button").style.display = "block";
-                document.getElementById("leaderboard-button").style.display = "block";
-            }
-
-
-            loadProfile();
-            loadBasket();
-
-            window.addEventListener('load', () => {
-                document.getElementById('avatar-selection').style.display = 'none';
+                row.innerHTML = `
+                                <td style="padding: 8px;">${player.name}</td>
+                                <td style="padding: 8px; text-align: right;">${player.coins.toLocaleString()}</td>
+                            `;
+                tableBody.appendChild(row);
             });
 
-            function checkOrientation() {
-                const warning = document.getElementById('orientation-warning');
-                const container = document.getElementById('game-container');
-                if (window.innerHeight > window.innerWidth) {
-                    warning.style.display = 'flex';
-                    container.style.display = 'none';
-                } else {
-                    warning.style.display = 'none';
-                    container.style.display = 'block';
-                }
-            }
-            
-            window.addEventListener('load', checkOrientation);
-            window.addEventListener('resize', checkOrientation);
+
+            document.getElementById("start-screen").style.display = "none";
+            document.getElementById("leaderboard-screen").style.display = "flex";
+            document.getElementById("shop-button").style.display = "none";
+            document.getElementById("leaderboard-button").style.display = "none";
+        }
+
+        function closeLeaderboard() {
+            document.getElementById("leaderboard-screen").style.display = "none";
+            document.getElementById("start-screen").style.display = "flex";
+            document.getElementById("shop-button").style.display = "block";
+            document.getElementById("leaderboard-button").style.display = "block";
+        }
 
 
-        </script>
+        loadProfile();
+        loadBasket();
+
+        window.addEventListener('load', () => {
+            document.getElementById('avatar-selection').style.display = 'none';
+        });
+
+        
+    </script>
 </body>
 </html>
