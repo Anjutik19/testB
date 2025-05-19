@@ -2,7 +2,7 @@
 <html lang="lv">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
     <title>Ābolu spēle</title>
     <style>
         body {
@@ -455,6 +455,29 @@
             margin-right: auto;
         }
 
+        #orientation-warning {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            color: black;
+            z-index: 999;
+            font-size: 20px;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        @media only screen and (max-width: 768px) {
+            h1, h2, p, button {
+                font-size: 16px !important;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -579,8 +602,9 @@
             <img id="grandma-image3" src="./grandma2.png" alt="Vecmāmiņa ir priecīga">
             <button onclick="claimGift()">Uz veikalu</button>
         </div>
-
-
+        <div id="orientation-warning">
+            Lūdzu, pagrieziet ierīci horizontāli, lai spēlētu šo spēli.
+        </div>
     </div>
 
         <script>
@@ -1117,6 +1141,22 @@
             window.addEventListener('load', () => {
                 document.getElementById('avatar-selection').style.display = 'none';
             });
+
+            function checkOrientation() {
+                const warning = document.getElementById('orientation-warning');
+                const container = document.getElementById('game-container');
+                if (window.innerHeight > window.innerWidth) {
+                    warning.style.display = 'flex';
+                    container.style.display = 'none';
+                } else {
+                    warning.style.display = 'none';
+                    container.style.display = 'block';
+                }
+            }
+            
+            window.addEventListener('load', checkOrientation);
+            window.addEventListener('resize', checkOrientation);
+
 
         </script>
 </body>
