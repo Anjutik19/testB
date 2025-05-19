@@ -1002,7 +1002,7 @@
             const selectBtn = document.getElementById("select-basket-button");
             const basketPriceLabel = document.getElementById("basket-price-label");
 
-            let price = [0, 100, 500, 1000][currentBasketIndex];
+            let price = [0, 100, 500, 10000][currentBasketIndex];
             if (purchasedBaskets[currentBasketIndex]) {
                 selectBtn.textContent = "Izvēlēties";
                 selectBtn.disabled = currentBasketIndex === selectedBasketIndex;
