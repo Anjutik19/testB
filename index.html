@@ -472,10 +472,49 @@
             padding: 20px;
         }
         
+      @media screen and (orientation: portrait) {
+          #orientation-warning {
+            display: flex !important;
+          }
+        
+          #game-container {
+            display: none !important;
+          }
+        }
+        
         @media only screen and (max-width: 768px) {
-            h1, h2, p, button {
-                font-size: 16px !important;
-            }
+          body {
+            font-family: 'Arial', sans-serif !important;
+            font-size: 14px;
+          }
+        
+          h1, h2, p, button {
+            font-size: 16px !important;
+          }
+        
+          #level-buttons button,
+          #profile-button,
+          #menu-button,
+          #shop-button,
+          #leaderboard-button {
+            font-size: 14px !important;
+            padding: 6px 12px !important;
+          }
+        
+          #basket {
+            width: 80px !important;
+            height: 60px !important;
+          }
+        
+          .apple {
+            width: 40px !important;
+            height: 40px !important;
+          }
+        
+          .bad-apple {
+            width: 30px !important;
+            height: 30px !important;
+          }
         }
 
     </style>
